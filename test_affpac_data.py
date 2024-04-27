@@ -12,6 +12,7 @@ import os
 import sys
 import matplotlib.pyplot as plt
 import load_affpac_data as afp
+import numpy as np
 
 #Close previosly drawn plots
 plt.close('all')
@@ -23,4 +24,5 @@ subject='00'
 
 #%% Load and plot AffPac data
 
-data = afp.load_affpac_data(subject,data_directory)
+data,channels = afp.load_affpac_data(subject,data_directory)
+
