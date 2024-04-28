@@ -42,7 +42,7 @@ def load_affpac_data(subject,data_directory):
     markers=data_dict['markers']
     #Parse EEG data
     eeg_data=data_dict['X']
-    Y_data=data_dict['Y']
+    Y_data=data_dict['Y'].astype(int)
     
     return data_dict, channels, information_array,information_array,id_labels,markers,eeg_data,Y_data
 
@@ -92,4 +92,32 @@ def plot_raw_data(data,subject, eeg_data, Y_data, information_array,channels, ch
     plt.tight_layout()
     
     
-    pass
+def epoch_eeg_data(eeg_data,Y_data):
+    
+    #We want to epoch the data for two particular events: Normal (Code 22/23)
+    #and frustration (Code 24/25)
+    eeg_epoch_normal=[]
+    eeg_epoch_frustrated=[]
+    
+    #Determine indexes of start and end of epoch for normal
+    normal_epoch_index_start=np.where(Y_data[0]==22)
+    normal_epoch_index_end=np.where(Y_data[0]==23)
+    frustrated_epoch_index_start=np.where(Y_data[0]==24)
+    frustrated_epoch_index_end=np.where(Y_data[0]==25)
+    
+    #Determine how many trials there is
+    epoch_count_normal=(Y_data[0]==22).sum()
+    epoch_count_frustrated=(Y_data[0]==24).sum()
+    
+    #build normal epoch array
+    for epoch_index in range(epoch_count_normal-1):
+        eeg_epoch_normal.append(eeg_data[:,normal_epoch_index_start[0][epoch_index]:normal_epoch_index_end[0][epoch_index]])
+    for epoch_index in range(epoch_count_frustrated-1):
+        eeg_epoch_frustrated.append(eeg_data[:,frustrated_epoch_index_start[0][epoch_index]:frustrated_epoch_index_end[0][epoch_index]])
+        
+    #convert to numpy array before returning. Getting error when doing this because the length of third dimension is not consistent
+    #Keepins as python lists for now
+    #eeg_epoch_normal=np.array(eeg_epoch_normal,dtype="object")
+    #eeg_epoch_frustrated=np.array(eeg_epoch_frustrated)
+    
+    return eeg_epoch_normal, eeg_epoch_frustrated
