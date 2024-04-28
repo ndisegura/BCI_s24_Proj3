@@ -94,9 +94,19 @@ def epoch_eeg_data(eeg_data,Y_data):
 def plot_epoch_data(eeg_epoch_normal, eeg_epoch_frustrated, channels, subject, channel_to_plot): 
     channel_index = np.where(channels==channel_to_plot)[0][0]
     for trial in range(eeg_epoch_normal.shape[0]):
-        plt.plot(eeg_epoch_normal[trial,channel_index,:], color = 'blue')
+        if trial==0: 
+            plt.plot(eeg_epoch_normal[trial,channel_index,:], color = 'blue', label = 'normal')
+        else:
+            plt.plot(eeg_epoch_normal[trial,channel_index,:], color = 'blue')
+
     for trial in range(eeg_epoch_frustrated.shape[0]):
-        plt.plot(eeg_epoch_frustrated[trial,channel_index,:], color = 'red')
-    # plt.legend()
-    plt.title(f"Channel {channel_to_plot} Subject {subject}")
-    plt.show()
+        if trial==0: 
+            plt.plot(eeg_epoch_frustrated[trial,channel_index,:], color = 'red', label = 'frustrated')
+        else: 
+            plt.plot(eeg_epoch_frustrated[trial,channel_index,:], color = 'red')
+
+    plt.legend()
+    channel = ''.join(channel_to_plot)
+    plt.title(f"Channel {channel} Subject {subject}")
+    plt.savefig(f'plots/subject{subject}_channel{channel}')
+    plt.close()
