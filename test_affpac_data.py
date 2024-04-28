@@ -26,5 +26,5 @@ subject='00'
 
 data,channels, information_array,information_array,id_labels,markers,eeg_data,Y_data = afp.load_affpac_data(subject,data_directory)
 
-afp.plot_raw_data(data,subject, eeg_data, information_array,channels, ['Fz','Oz','F4'])
+afp.plot_raw_data(data,subject, eeg_data, Y_data, information_array,channels,['Fz','Oz','F4'],[15,80])
 

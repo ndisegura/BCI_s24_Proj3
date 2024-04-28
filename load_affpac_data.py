@@ -46,14 +46,14 @@ def load_affpac_data(subject,data_directory):
     
     return data_dict, channels, information_array,information_array,id_labels,markers,eeg_data,Y_data
 
-def plot_raw_data(data,subject, eeg_data, information_array,channels, channels_to_plot):
+def plot_raw_data(data,subject, eeg_data, Y_data, information_array,channels, channels_to_plot,start_stop_time=[0,-1]):
     
     
     eeg_time=information_array[0]
-    
-    #channels=data['channels']
-    #eeg=data['eeg']
-    #fs=data['fs']
+    sampling_period=eeg_time[1]-eeg_time[0]
+    fs=1/(sampling_period)
+    start_index=int(start_stop_time[0]/sampling_period) #compute integer index for start time
+    stop_index=int(start_stop_time[1]/sampling_period) #compute integer index for start time
     #eeg_time=np.arange(0,len(eeg[0])*1/fs,1/fs)
     eeg_time=information_array[0]
     
@@ -63,18 +63,19 @@ def plot_raw_data(data,subject, eeg_data, information_array,channels, channels_t
     
     #is_channel_match=np.zeros(len(eeg_data[0]),dtype=bool)
     
-    fig, axs = plt.subplots(1,sharex=True)
+    fig, axs = plt.subplots(2,sharex=True)
     fig.suptitle(f'AffPac Subject {subject} Raw Data')
     
-    # #PLot Event types
+    # #PLot Marker values
+    
     
     # for event_index, event_freq in enumerate(event_type):
     #     start_time=eeg_time[event_samples[event_index]]
     #     end_time=eeg_time[event_samples[event_index]+int(event_duration[event_index])]
-    #     axs[0].plot([start_time,end_time],[event_freq,event_freq], 'b')
-    # axs[0].set_ylabel('Flash Frequency')
-    # axs[0].set_xlabel('Time (s)')
-    # axs[0].grid()
+    axs[0].plot(eeg_time[start_index:stop_index],np.squeeze(Y_data[0][start_index:stop_index]),label='Marker Events')
+    axs[0].set_ylabel('Marker Event')
+    axs[0].set_xlabel('Time (s)')
+    axs[0].grid()
         
     #PLot EEG Data
     for channel_index, channel_member in enumerate(channels_to_plot):
@@ -83,11 +84,11 @@ def plot_raw_data(data,subject, eeg_data, information_array,channels, channels_t
         
         selected_channel_data=eeg_data[is_channel_match]
         
-        axs.plot(eeg_time, np.squeeze(selected_channel_data),label=channel_member)
-    axs.set_ylabel('Voltage (uV)')
-    axs.set_xlabel('Time (s)')
-    axs.legend()
-    axs.grid()
+        axs[1].plot(eeg_time[start_index:stop_index], np.squeeze(selected_channel_data[0][start_index:stop_index]),label=channel_member)
+    axs[1].set_ylabel('Voltage (uV)')
+    axs[1].set_xlabel('Time (s)')
+    axs[1].legend()
+    axs[1].grid()
     plt.tight_layout()
     
     
