@@ -67,10 +67,10 @@ def epoch_eeg_data(eeg_data,Y_data):
 
     if normal_epoch_index_start.shape > normal_epoch_index_end.shape: 
         # normal_epoch_index_start = normal_epoch_index_start[:-1]
-        normal_epoch_index_end = np.append(normal_epoch_index_end, len(eeg_data[0]))
+        normal_epoch_index_end = np.append(normal_epoch_index_end, len(eeg_data[0])-1)
     if frustrated_epoch_index_start.shape > frustrated_epoch_index_end.shape: 
         # frustrated_epoch_index_start = frustrated_epoch_index_start[:-1]
-        frustrated_epoch_index_end = np.append(frustrated_epoch_index_end, len(eeg_data[0]))
+        frustrated_epoch_index_end = np.append(frustrated_epoch_index_end, len(eeg_data[0])-1)
         
     #Determine how many trials there is
     epoch_count_normal = (Y_data == 22).sum()
