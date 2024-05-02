@@ -64,7 +64,7 @@ def plot_raw_data(subject, eeg_data, Y_data, information_array, channels, channe
     axs[0].set_xlabel('Time (s)')
     axs[0].grid()
     axs[0].legend()
-    
+
     #PLot EEG Data
     for channel_index, channel_member in enumerate(channels_to_plot):
         is_channel_match=channels==channel_member #Boolean indexing across rows for item in list
