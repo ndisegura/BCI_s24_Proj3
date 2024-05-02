@@ -34,3 +34,14 @@ for subject in [0, 1, 2, 4, 6, 7, 9, 10, 11]:
     afp.plot_epoch_data(eeg_epoch_normal, eeg_epoch_frustrated, channels, subject, channel_to_plot=['Oz'])
 
     afp.plot_topographic(subject, eeg_epoch_normal, eeg_epoch_frustrated, channels, ['Fz', 'Oz'])
+    
+    #%% Get the spectrum of the epoch eeg data for normal and frustrated events (Marker==22,23,24,25)
+    fs = int(1/(information_array[0][1]-information_array[0][0]))
+    eeg_epochs_fft_normal,fft_frequencies=afp.get_frequency_spectrum(eeg_epoch_normal,fs)
+    eeg_epochs_fft_frustrated,fft_frequencies=afp.get_frequency_spectrum(eeg_epoch_frustrated,fs)
+    
+
+    channels_to_plot=['Fz','Oz','F4']
+    spectrum_db_normal,spectrum_db_frustrated=afp.plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_frequencies,channels,channels_to_plot,subject)
+
+
