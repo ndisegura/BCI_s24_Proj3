@@ -79,8 +79,8 @@ def epoch_eeg_data(eeg_data,Y_data):
     channels_count = eeg_data.shape[0]
     max_event_length = max(max(normal_epoch_index_end - normal_epoch_index_start), max(frustrated_epoch_index_end - frustrated_epoch_index_start))
 
-    eeg_epoch_normal = np.full((epoch_count_normal, channels_count, max_event_length), np.nan)
-    eeg_epoch_frustrated = np.full((epoch_count_frustrated, channels_count, max_event_length), np.nan)
+    eeg_epoch_normal = np.full((epoch_count_normal, channels_count, max_event_length), 0)
+    eeg_epoch_frustrated = np.full((epoch_count_frustrated, channels_count, max_event_length), 0)
 
     for epoch_index in range(epoch_count_normal-1):
         curr_epoch_length = normal_epoch_index_end[epoch_index] - normal_epoch_index_start[epoch_index]
@@ -112,3 +112,87 @@ def plot_epoch_data(eeg_epoch_normal, eeg_epoch_frustrated, channels, subject, c
     plt.title(f"Channel {channel} Subject {subject}")
     plt.savefig(f'plots/subject{subject}_channel{channel}')
     plt.close()
+    
+def get_frequency_spectrum(eeg_epochs,fs):
+    """
+    Function to compute the fast fourier transform of epoch'd eeg data'
+    
+    Parameters
+    ----------
+    eeg_epochs : numpy array of floats of size T x C x S where T is the number 
+    of event TRIALS, C is the number of channels
+    and S is the numnber of EEG samples
+ 
+    fs : integer.Input describing the sampling rate of EEG data in units of samples per second
+
+    Returns
+    -------
+    eeg_epochs_fft : numpy array of floats of dimension T x C x S where T is the number of event TRIALS, C is the number of channels
+    and S is the numnber of FFT points computed from EEG samples. eeg_epochs_fft contains the complex number spectrum of the eeg data
+        
+    fft_frequencies : numpuy array of float of size (n,) where n is the number of frequency number from 0 (DC) up to the nyquest rate.
+        
+
+    """
+    
+    # Take FFT of signal
+    eeg_epochs_fft=np.fft.rfft(eeg_epochs/10e6)
+    #Compute FFT Magnitude from Complex values
+    eeg_epochs_fft_magnitude=np.absolute(eeg_epochs_fft)
+    #Compute Frequencies
+    fft_frequencies=np.arange(0,fs/2,(fs/2)/eeg_epochs_fft_magnitude.shape[2])
+    
+    return eeg_epochs_fft,fft_frequencies[0:-1]
+
+def plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_frequencies,channels,channels_to_plot,subject=1):
+    #Find the 12Hz trials
+    #is_trial_12Hz=is_trial_15Hz==False
+    #separate 12Hz and 15Hz epochs
+    #eeg_epochs_fft_12Hz=eeg_epochs_fft[is_trial_12Hz]
+    #eeg_epochs_fft_15Hz=eeg_epochs_fft[is_trial_15Hz]
+    
+    #Compute FFT Magnitude from Complex values for 12Hz
+    eeg_epochs_fft_magnitude_normal=np.absolute(eeg_epochs_fft_normal)
+    eeg_epochs_fft_magnitude_frustrated=np.absolute(eeg_epochs_fft_frustrated)
+    
+    #Compute the power
+    #Generate power array
+    power_array=np.zeros(eeg_epochs_fft_magnitude_normal.shape)
+    power_array=2 #Array of dimension m,n,l with value=2
+    #Compute the power by squaring each element
+    eeg_epochs_fft_power_normal=np.power(eeg_epochs_fft_magnitude_normal,power_array)
+    eeg_epochs_fft_power_frustrated=np.power(eeg_epochs_fft_magnitude_frustrated,power_array)
+    #Compute the mean
+    eeg_epochs_fft_mean_normal=np.mean(eeg_epochs_fft_power_normal, axis=0)
+    eeg_epochs_fft_mean_frustrated=np.mean(eeg_epochs_fft_power_frustrated, axis=0)
+    #Normalize to the highest power. Use array broadcasting to handle dimensions mismatch
+    eeg_epochs_fft_normalized_normal=eeg_epochs_fft_mean_normal/np.max(eeg_epochs_fft_mean_normal,axis=1)[:,np.newaxis]
+    eeg_epochs_fft_normalized_frustrated=eeg_epochs_fft_mean_frustrated/np.max(eeg_epochs_fft_mean_frustrated,axis=1)[:,np.newaxis]
+    
+    #Compute the FFT power in dB
+    eeg_epochs_fft_db_normal= np.log10(eeg_epochs_fft_normalized_normal)
+    eeg_epochs_fft_db_frustrated= np.log10(eeg_epochs_fft_normalized_frustrated)
+    
+    #is_channel_to_plot=channels==any(channels_to_plot)
+    
+    #Plot the spectrum
+    plot_count=len(channels_to_plot)
+    fig, axs = plt.subplots( plot_count,sharex=True)
+    
+    
+    for channel_index, channel_name in enumerate(channels_to_plot):
+    
+       is_channel_to_plot=channels==channel_name
+       axs[channel_index].plot(fft_frequencies,np.squeeze(eeg_epochs_fft_db_normal[is_channel_to_plot]),label='Normal Trials')
+       axs[channel_index].axvline(x=12,linewidth=1, color='b')
+       axs[channel_index].plot(fft_frequencies,np.squeeze(eeg_epochs_fft_db_frustrated[is_channel_to_plot]),label='Frustrated Trials')
+       axs[channel_index].axvline(x=15,linewidth=1,  color="orange")
+       axs[channel_index].set_ylabel('Power (dB)')
+       axs[channel_index].set_xlabel('Frequency (Hz)')
+       axs[channel_index].set_title(f'Channel {channel_name} frequency content\n for Affpac S{subject}')
+       axs[channel_index].legend()
+       axs[channel_index].grid()
+    plt.tight_layout()
+    return eeg_epochs_fft_db_normal,eeg_epochs_fft_db_frustrated   
+    
+
