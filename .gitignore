@@ -1,2 +1,4 @@
 BNCI_data/
 __pycache__/
+plots/
+*.png
