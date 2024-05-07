@@ -12,6 +12,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import loadmat 
 import plot_topo
+from pylab import *
+from scipy.signal import firwin, filtfilt,freqz,hilbert
+
 
 
 def load_affpac_data(subject_id=0, data_path = 'data/'): 
@@ -79,7 +82,7 @@ def plot_raw_data(subject, eeg_data, Y_data, information_array, channels, channe
     plt.xlim(start_stop_time)
     plt.tight_layout()
     plt.savefig(f"plots/subject{subject}_raw_data")
-    plt.close()
+    #plt.close()
  
     
 def epoch_eeg_data(eeg_data, Y_data, information_array):
@@ -107,8 +110,10 @@ def epoch_eeg_data(eeg_data, Y_data, information_array):
     channels_count = eeg_data.shape[0]
     max_event_length = max(max(normal_epoch_index_end - normal_epoch_index_start), max(frustrated_epoch_index_end - frustrated_epoch_index_start))
 
-    eeg_epoch_normal = np.full((epoch_count_normal, channels_count, max_event_length), 0)
-    eeg_epoch_frustrated = np.full((epoch_count_frustrated, channels_count, max_event_length), 0)
+    #eeg_epoch_normal = np.full((epoch_count_normal, channels_count, max_event_length), 0)
+    eeg_epoch_normal=np.zeros((epoch_count_normal, channels_count, max_event_length))
+    #eeg_epoch_frustrated = np.full((epoch_count_frustrated, channels_count, max_event_length), 0)
+    eeg_epoch_frustrated = np.zeros((epoch_count_frustrated, channels_count, max_event_length))
     
     # Create empty boolean masks for each epoch
     normal_epoch_masks = np.zeros((epoch_count_normal, eeg_data.shape[1]))
@@ -242,7 +247,7 @@ def plot_topographic(subject, eeg_epoch_normal, eeg_epoch_frustrated, channels, 
     
     plt.suptitle(f"Subject {subject}")
     plt.savefig(f"plots/plot_topo_subject{subject}")
-    plt.close()
+    #plt.close()
     
 
 def get_frequency_spectrum(eeg_epochs,fs):
@@ -272,9 +277,12 @@ def get_frequency_spectrum(eeg_epochs,fs):
     #Compute FFT Magnitude from Complex values
     eeg_epochs_fft_magnitude=np.absolute(eeg_epochs_fft)
     #Compute Frequencies
+    n=np.shape(eeg_epochs_fft_magnitude)[2]
     fft_frequencies=np.arange(0,fs/2,(fs/2)/eeg_epochs_fft_magnitude.shape[2])
-    
-    return eeg_epochs_fft,fft_frequencies[0:-1]
+    if n<len(fft_frequencies):
+        fft_frequencies=fft_frequencies[0:-1]
+    #fft_frequencies=np.fft.rfftfreq(n,d=1/fs)
+    return eeg_epochs_fft,fft_frequencies
 
 
 def plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_frequencies,channels,channels_to_plot,subject=1):
@@ -330,6 +338,77 @@ def plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_freq
     plt.suptitle(f'Frequency Content Subject {subject}')
     plt.tight_layout()
     plt.savefig(f"plots/fft_plot_subject{subject}")
-    plt.close()
+    #plt.close()
     return eeg_epochs_fft_db_normal,eeg_epochs_fft_db_frustrated   
+
+def make_bandpass_filter(low_cutoff,high_cutoff,filter_type='hann',filter_order=10,fs=1000):
+    """
+    Generate a bandpass FIR filter.
+
+    Parameters:
+        low_cutoff (float): Lower cutoff frequency of the filter.
+        high_cutoff (float): Higher cutoff frequency of the filter.
+        filter_type (str, optional): Type of window to use in FIR filter design. Defaults to 'hann'.
+        filter_order (int, optional): Order of the FIR filter. Defaults to 10.
+        fs (int, optional): Sampling frequency in Hz. Defaults to 1000.
+
+    Returns:
+        array: Coefficients of the FIR filter.
+    """
+    
+    if filter_type==None: filter_type='hann'
+    fNQ = fs/2                                     #Compute the Niqyst rate
+    taps_number = filter_order                     # Define the filter order
+    #Wn = [low_cutoff/fNQ ,high_cutoff/fNQ]         # ... and specify the cutoff frequency normalized to Nyquest rate
+    Wn = [low_cutoff ,high_cutoff]         # ... and specify the cutoff frequency normalized to Nyquest rate
+    #filter_coefficients  = firwin(taps_number, Wn, window=filter_type, pass_zero='bandpass')              # ... build lowpass FIR filter,
+    filter_coefficients  = firwin(taps_number, Wn, window=filter_type, pass_zero=False,fs=fs)              # ... build lowpass FIR filter,
+    
+    w, h = freqz(filter_coefficients)                      #Compute the frequency response
+    
+    response_time=np.arange(0,filter_order/fs*+1,1/fs)
+    
+    fig, axs = plt.subplots(2)
+    axs[1].set_title('Digital filter frequency response')
+    axs[1].plot(w*fNQ/3.1416, 20 * np.log10(abs(h)), 'b')
+    axs[1].set_ylabel('Amplitude [dB]', color='b')
+    axs[1].set_xlabel('Frequency [Hz]')
+    ax2 = axs[1].twinx()
+    angles = np.unwrap(np.angle(h))
+    ax2.plot(w*fNQ/3.1416, angles, 'g')
+    ax2.set_ylabel('Angle (radians)', color='g')
+    ax2.grid(True)
+    ax2.axis('tight')
+    axs[0].set_title('Digital filter impulse response')
+    axs[0].plot(response_time,filter_coefficients, 'b')
+    axs[0].set_ylabel('Amplitude ', color='b')
+    axs[0].set_xlabel('Time [s]')
+    axs[0].grid(True)
+
+    plt.tight_layout()
+    plt.show()
+    #save figure to a file
+
+    plt.savefig(f"{filter_type}_filter_{low_cutoff}-{high_cutoff}Hz_order{filter_order}.")
+
+    
+    return filter_coefficients
+
+def filter_data(data,b):
+    """
+    Filter input data using "b" FIR filter coefficients.
+    "a" filter coefficients is always 1 (FIR)
+
+    Parameters:
+        data (array): Numpy array containing EEG data.
+        b (array): Coefficients of the FIR filter.
+
+    Returns:
+        array: Filtered EEG data.
+    """
+    
+    filtered_data=filtfilt(b, a=1, x=data,axis=data.ndim-1)
+    
+    return filtered_data
+
     
