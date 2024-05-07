@@ -21,7 +21,7 @@ plt.close('all')
 #Build data file string
 data_directory='./BNCI_data/'
 #for subject in [0, 1, 2, 4, 6, 7, 9, 10, 11]:
-for subject in [4, 6, 7, 9, 10, 11]:
+for subject in [0, 1, 2, 4, 6, 7, 9, 10, 11]:
     # subject = 0 
     #%% Load AffPac data
 

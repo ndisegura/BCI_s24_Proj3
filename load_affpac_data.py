@@ -20,9 +20,8 @@ from scipy.signal import firwin, filtfilt,freqz,hilbert
 def load_affpac_data(subject_id=0, data_path = 'data/'): 
     if subject_id < 10: data = loadmat.loadmat(f'{data_path}/S0{subject_id}')
     else: data = loadmat.loadmat(f'{data_path}/S{subject_id}')
-    # print(data.keys())
-    # quit()
-    return data['chann'], data['I'], data['X']*1e6, data['Y']
+
+    return data['chann'][:32], data['I'], data['X'][:32]*1e6, data['Y']
 
 
 def plot_raw_data(subject, eeg_data, Y_data, information_array, channels, channels_to_plot,start_stop_time=[0,-1], is_plot_y=False, is_plot_epochs=True):
@@ -81,8 +80,8 @@ def plot_raw_data(subject, eeg_data, Y_data, information_array, channels, channe
     axs[1].grid()
     plt.xlim(start_stop_time)
     plt.tight_layout()
-    plt.savefig(f"plots/subject{subject}_raw_data")
-    #plt.close()
+    plt.savefig(f"plots/subject_{subject}_raw_data")
+    plt.close()
  
     
 def epoch_eeg_data(eeg_data, Y_data, information_array):
@@ -107,7 +106,7 @@ def epoch_eeg_data(eeg_data, Y_data, information_array):
     epoch_count_normal = (Y_data == 22).sum()
     epoch_count_frustrated = (Y_data == 24).sum()
 
-    channels_count = eeg_data.shape[0]
+    channels_count = 32 #eeg_data.shape[0]
     max_event_length = max(max(normal_epoch_index_end - normal_epoch_index_start), max(frustrated_epoch_index_end - frustrated_epoch_index_start))
 
     #eeg_epoch_normal = np.full((epoch_count_normal, channels_count, max_event_length), 0)
@@ -119,23 +118,23 @@ def epoch_eeg_data(eeg_data, Y_data, information_array):
     normal_epoch_masks = np.zeros((epoch_count_normal, eeg_data.shape[1]))
     frustrated_epoch_masks = np.zeros((epoch_count_frustrated, eeg_data.shape[1]))
     
-    for epoch_index in range(epoch_count_normal-1):
+    for epoch_index in range(epoch_count_normal):
         # Get epoch start and end indices (for code clarity)
         epoch_start_index = normal_epoch_index_start[epoch_index]
         epoch_end_index = normal_epoch_index_end[epoch_index]
         # Find epoch length and add eeg data to the array for the current index
         curr_epoch_length = epoch_end_index - epoch_start_index
-        eeg_epoch_normal[epoch_index, :, :curr_epoch_length]  = eeg_data[ :, epoch_start_index : epoch_end_index]
+        eeg_epoch_normal[epoch_index, :, :curr_epoch_length]  = eeg_data[ :32, epoch_start_index : epoch_end_index]
         # Fill epoch mask with 1s where this epoch occurred
         normal_epoch_masks[epoch_index, epoch_start_index : epoch_end_index] = 1
 
-    for epoch_index in range(epoch_count_frustrated-1):
+    for epoch_index in range(epoch_count_frustrated):
         # Get epoch start and end indices (for code clarity)
         epoch_start_index = frustrated_epoch_index_start[epoch_index]
         epoch_end_index = frustrated_epoch_index_end[epoch_index]
         # Find epoch length and add eeg data to the array for the current index
         curr_epoch_length = epoch_end_index - epoch_start_index
-        eeg_epoch_frustrated[epoch_index, :, :curr_epoch_length] = eeg_data[ :, epoch_start_index : epoch_end_index]
+        eeg_epoch_frustrated[epoch_index, :, :curr_epoch_length] = eeg_data[ :32, epoch_start_index : epoch_end_index]
         # Fill epoch mask with 1s where this epoch occurred
         frustrated_epoch_masks[epoch_index, epoch_start_index : epoch_end_index] = 1
         
@@ -167,8 +166,8 @@ def plot_epoch_data(eeg_epoch_normal, eeg_epoch_frustrated, epoch_time_array, ch
     plt.title(f"Channel {channel} Subject {subject}")
     plt.grid(True)
     plt.ylabel("Time (s)")
-    plt.savefig(f'plots/subject-{subject}_channel-{channel}')
-    plt.show()
+    plt.savefig(f'plots/subject_{subject}_channel_{channel}_epoch')
+    plt.close()
     
 
 def plot_after_button_press(eeg_epoch_normal, eeg_epoch_frustrated, normal_epoch_masks, frustrated_epoch_masks, epoch_time_array, Y_data, channels, subject, channel_to_plot, start_stop_time=[-1, 2], presses="first", separate_by_side=False):
@@ -228,9 +227,9 @@ def plot_after_button_press(eeg_epoch_normal, eeg_epoch_frustrated, normal_epoch
     plt.legend()
     channel = ''.join(channel_to_plot)
     plt.grid()
-    plt.title(f"Channel {channel} Subject {subject} {start_stop_time[0]} to {start_stop_time[1]}s After First Button Press")
-    plt.savefig(f'plots/subject-{subject}_channel-{channel}_postpress')
-    plt.show()
+    plt.title(f"Channel {channel}, Subject {subject} \n {start_stop_time[0]} to {start_stop_time[1]}s After First Button Press")
+    plt.savefig(f'plots/subject_{subject}_channel_{channel}_postpress')
+    plt.close()
 
 
 def plot_topographic(subject, eeg_epoch_normal, eeg_epoch_frustrated, channels, channels_to_plot):
@@ -246,8 +245,8 @@ def plot_topographic(subject, eeg_epoch_normal, eeg_epoch_frustrated, channels, 
     plot_topo.plot_topo(axes = axes[1], channel_names = list(channels[:32]), channel_data=channel_data, title="Frustrated")
     
     plt.suptitle(f"Subject {subject}")
-    plt.savefig(f"plots/plot_topo_subject{subject}")
-    #plt.close()
+    plt.savefig(f"plots/subject_{subject}_all_data_topo_plot")
+    plt.close()
     
 
 def get_frequency_spectrum(eeg_epochs,fs):
@@ -308,6 +307,8 @@ def plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_freq
     eeg_epochs_fft_mean_frustrated=np.mean(eeg_epochs_fft_power_frustrated, axis=0)
     #Normalize to the highest power. Use array broadcasting to handle dimensions mismatch
     eeg_epochs_fft_normalized_normal=eeg_epochs_fft_mean_normal/np.max(eeg_epochs_fft_mean_normal,axis=1)[:,np.newaxis]
+    # print(len(np.max(eeg_epochs_fft_mean_frustrated,axis=1)[:,np.newaxis]))
+    # quit()
     eeg_epochs_fft_normalized_frustrated=eeg_epochs_fft_mean_frustrated/np.max(eeg_epochs_fft_mean_frustrated,axis=1)[:,np.newaxis]
     
     #Compute the FFT power in dB
@@ -323,8 +324,8 @@ def plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_freq
     
     for channel_index, channel_name in enumerate(channels_to_plot):
     
-       is_channel_to_plot=channels==channel_name
-       print(fft_frequencies.shape, subject)
+       is_channel_to_plot = channels==channel_name
+    #    print(fft_frequencies.shape, subject)
        axs[channel_index].plot(fft_frequencies,np.squeeze(eeg_epochs_fft_db_normal[is_channel_to_plot]),label='Normal Trials')
        axs[channel_index].axvline(x=12,linewidth=1, color='b')
        axs[channel_index].plot(fft_frequencies,np.squeeze(eeg_epochs_fft_db_frustrated[is_channel_to_plot]),label='Frustrated Trials')
@@ -337,8 +338,8 @@ def plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_freq
     
     plt.suptitle(f'Frequency Content Subject {subject}')
     plt.tight_layout()
-    plt.savefig(f"plots/fft_plot_subject{subject}")
-    #plt.close()
+    plt.savefig(f"plots/subject_{subject}_fft_plot")
+    plt.close()
     return eeg_epochs_fft_db_normal,eeg_epochs_fft_db_frustrated   
 
 def make_bandpass_filter(low_cutoff,high_cutoff,filter_type='hann',filter_order=10,fs=1000):
@@ -386,13 +387,14 @@ def make_bandpass_filter(low_cutoff,high_cutoff,filter_type='hann',filter_order=
     axs[0].grid(True)
 
     plt.tight_layout()
-    plt.show()
+    # plt.show()
     #save figure to a file
 
-    plt.savefig(f"{filter_type}_filter_{low_cutoff}-{high_cutoff}Hz_order{filter_order}.")
-
+    plt.savefig(f"plots/{filter_type}_filter_{low_cutoff}-{high_cutoff}Hz_order{filter_order}.")
+    plt.close()
     
     return filter_coefficients
+
 
 def filter_data(data,b):
     """
@@ -410,5 +412,3 @@ def filter_data(data,b):
     filtered_data=filtfilt(b, a=1, x=data,axis=data.ndim-1)
     
     return filtered_data
-
-    
