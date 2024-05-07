@@ -14,7 +14,9 @@ import loadmat
 import plot_topo
 from pylab import *
 from scipy.signal import firwin, filtfilt,freqz,hilbert
+from mne.stats import fdr_correction
 
+np.random.seed(0)
 
 
 def load_affpac_data(subject_id=0, data_path = 'data/'): 
@@ -151,21 +153,23 @@ def plot_epoch_data(eeg_epoch_normal, eeg_epoch_frustrated, epoch_time_array, ch
     time = np.linspace(0, eeg_epoch_frustrated.shape[2]*(1/128), eeg_epoch_frustrated.shape[2])
     for trial in range(eeg_epoch_normal.shape[0]):
         if trial==0: 
-            plt.plot(epoch_time_array, eeg_epoch_normal[trial,channel_index,:], color = 'blue', label = 'normal')
+            plt.plot(epoch_time_array, eeg_epoch_normal[trial,channel_index,:], color = 'blue', label = 'normal', alpha=0.5)
         else:
-            plt.plot(epoch_time_array, eeg_epoch_normal[trial,channel_index,:], color = 'blue')
+            plt.plot(epoch_time_array, eeg_epoch_normal[trial,channel_index,:], color = 'blue', alpha=0.5)
 
     for trial in range(eeg_epoch_frustrated.shape[0]):
         if trial==0: 
-            plt.plot(epoch_time_array, eeg_epoch_frustrated[trial,channel_index,:], color = 'red', label = 'frustrated')
+            plt.plot(epoch_time_array, eeg_epoch_frustrated[trial,channel_index,:], color = 'red', label = 'frustrated', alpha=0.5)
         else: 
-            plt.plot(epoch_time_array, eeg_epoch_frustrated[trial,channel_index,:], color = 'red')
+            plt.plot(epoch_time_array, eeg_epoch_frustrated[trial,channel_index,:], color = 'red', alpha=0.5)
 
     plt.legend()
     channel = ''.join(channel_to_plot)
     plt.title(f"Channel {channel} Subject {subject}")
     plt.grid(True)
-    plt.ylabel("Time (s)")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Voltage (uV)")
+
     plt.savefig(f'plots/subject_{subject}_channel_{channel}_epoch')
     plt.close()
     
@@ -173,14 +177,13 @@ def plot_epoch_data(eeg_epoch_normal, eeg_epoch_frustrated, epoch_time_array, ch
 def plot_after_button_press(eeg_epoch_normal, eeg_epoch_frustrated, normal_epoch_masks, frustrated_epoch_masks, epoch_time_array, Y_data, channels, subject, channel_to_plot, start_stop_time=[-1, 2], presses="first", separate_by_side=False):
     plt.figure()
     
-    sampling_period=epoch_time_array[1]-epoch_time_array[0]
-    fs=1/(sampling_period)
+    sampling_period=epoch_time_array[1] - epoch_time_array[0]
     length_s = abs(start_stop_time[1] - start_stop_time[0])
     stop_index=int(length_s/sampling_period)
     button_time_array = epoch_time_array[0:stop_index]
     channel_index = np.where(channels==channel_to_plot)[0][0]
     
-    for trial in range(eeg_epoch_normal.shape[0] - 1):
+    for trial in range(eeg_epoch_normal.shape[0]):
         # Isolate the right subset of the Y_data
         trial_Y_data = Y_data[normal_epoch_masks[trial]]
         
@@ -190,8 +193,6 @@ def plot_after_button_press(eeg_epoch_normal, eeg_epoch_frustrated, normal_epoch
         
         start_index=int(start_stop_time[0]/sampling_period) + button_presses[0] #compute integer index for start time
         stop_index=int(start_stop_time[1]/sampling_period) + button_presses[0] #compute integer index for start time
-        time_array = epoch_time_array[start_index:stop_index]
-        eeg_data = eeg_epoch_normal[trial,channel_index,start_index:stop_index]
         
         if start_index < 0:
             stop_index += abs(start_index)
@@ -202,7 +203,7 @@ def plot_after_button_press(eeg_epoch_normal, eeg_epoch_frustrated, normal_epoch
         else:
             plt.plot(button_time_array, eeg_epoch_normal[trial,channel_index,start_index:stop_index], color = 'blue')
 
-    for trial in range(eeg_epoch_frustrated.shape[0] - 1):
+    for trial in range(eeg_epoch_frustrated.shape[0]):
         # Isolate the right subset of the Y_data
         trial_Y_data = Y_data[frustrated_epoch_masks[trial]]
         
@@ -212,8 +213,6 @@ def plot_after_button_press(eeg_epoch_normal, eeg_epoch_frustrated, normal_epoch
         
         start_index=int(start_stop_time[0]/sampling_period) + button_presses[0] #compute integer index for start time
         stop_index=int(start_stop_time[1]/sampling_period) + button_presses[0] #compute integer index for start time
-        time_array = epoch_time_array[start_index:stop_index]
-        eeg_data = eeg_epoch_normal[trial,channel_index,start_index:stop_index]
         
         if start_index < 0:
             stop_index += abs(start_index)
@@ -226,26 +225,28 @@ def plot_after_button_press(eeg_epoch_normal, eeg_epoch_frustrated, normal_epoch
 
     plt.legend()
     channel = ''.join(channel_to_plot)
-    plt.grid()
+    plt.grid(True)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Voltage (uV)")
     plt.title(f"Channel {channel}, Subject {subject} \n {start_stop_time[0]} to {start_stop_time[1]}s After First Button Press")
     plt.savefig(f'plots/subject_{subject}_channel_{channel}_postpress')
     plt.close()
 
 
-def plot_topographic(subject, eeg_epoch_normal, eeg_epoch_frustrated, channels, channels_to_plot):
+def plot_topographic(subject, eeg_epoch_normal, eeg_epoch_frustrated, channels, file_name, subtitle_1, subtitle_2, suptitle):
     fig, axes = plt.subplots(1, 2, figsize=(6,4))
     axes = axes.flatten()
 
     channel_indices = np.arange(0, 32, 1)
 
     channel_data1 = np.nanmedian(eeg_epoch_normal[:,channel_indices,:], axis=0)
-    plot_topo.plot_topo(axes = axes[0], channel_names = list(channels[:32]), channel_data=channel_data1, title="Normal")
+    plot_topo.plot_topo(axes = axes[0], channel_names = list(channels[:32]), channel_data=channel_data1, title=subtitle_1)
 
     channel_data = np.nanmedian(eeg_epoch_frustrated[:,channel_indices,:], axis=0)
-    plot_topo.plot_topo(axes = axes[1], channel_names = list(channels[:32]), channel_data=channel_data, title="Frustrated")
-    
-    plt.suptitle(f"Subject {subject}")
-    plt.savefig(f"plots/subject_{subject}_all_data_topo_plot")
+    plot_topo.plot_topo(axes = axes[1], channel_names = list(channels[:32]), channel_data=channel_data, title=subtitle_2)
+
+    plt.suptitle(f"Subject {subject} \n {suptitle}")
+    plt.savefig(f"plots/subject_{subject}_{file_name}")
     plt.close()
     
 
@@ -272,7 +273,7 @@ def get_frequency_spectrum(eeg_epochs,fs):
     """
     
     # Take FFT of signal
-    eeg_epochs_fft=np.fft.rfft(eeg_epochs/10e6)
+    eeg_epochs_fft=np.fft.rfft(eeg_epochs)
     #Compute FFT Magnitude from Complex values
     eeg_epochs_fft_magnitude=np.absolute(eeg_epochs_fft)
     #Compute Frequencies
@@ -285,13 +286,7 @@ def get_frequency_spectrum(eeg_epochs,fs):
 
 
 def plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_frequencies,channels,channels_to_plot,subject=1):
-    #Find the 12Hz trials
-    #is_trial_12Hz=is_trial_15Hz==False
-    #separate 12Hz and 15Hz epochs
-    #eeg_epochs_fft_12Hz=eeg_epochs_fft[is_trial_12Hz]
-    #eeg_epochs_fft_15Hz=eeg_epochs_fft[is_trial_15Hz]
     
-    #Compute FFT Magnitude from Complex values for 12Hz
     eeg_epochs_fft_magnitude_normal=np.absolute(eeg_epochs_fft_normal)
     eeg_epochs_fft_magnitude_frustrated=np.absolute(eeg_epochs_fft_frustrated)
     
@@ -307,16 +302,14 @@ def plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_freq
     eeg_epochs_fft_mean_frustrated=np.mean(eeg_epochs_fft_power_frustrated, axis=0)
     #Normalize to the highest power. Use array broadcasting to handle dimensions mismatch
     eeg_epochs_fft_normalized_normal=eeg_epochs_fft_mean_normal/np.max(eeg_epochs_fft_mean_normal,axis=1)[:,np.newaxis]
-    # print(len(np.max(eeg_epochs_fft_mean_frustrated,axis=1)[:,np.newaxis]))
-    # quit()
+
     eeg_epochs_fft_normalized_frustrated=eeg_epochs_fft_mean_frustrated/np.max(eeg_epochs_fft_mean_frustrated,axis=1)[:,np.newaxis]
     
     #Compute the FFT power in dB
     eeg_epochs_fft_db_normal= np.log10(eeg_epochs_fft_normalized_normal)
     eeg_epochs_fft_db_frustrated= np.log10(eeg_epochs_fft_normalized_frustrated)
     
-    #is_channel_to_plot=channels==any(channels_to_plot)
-    
+
     #Plot the spectrum
     plot_count=len(channels_to_plot)
     fig, axs = plt.subplots(plot_count,figsize = (10, 5), sharex=True)
@@ -341,6 +334,7 @@ def plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_freq
     plt.savefig(f"plots/subject_{subject}_fft_plot")
     plt.close()
     return eeg_epochs_fft_db_normal,eeg_epochs_fft_db_frustrated   
+
 
 def make_bandpass_filter(low_cutoff,high_cutoff,filter_type='hann',filter_order=10,fs=1000):
     """
@@ -387,9 +381,8 @@ def make_bandpass_filter(low_cutoff,high_cutoff,filter_type='hann',filter_order=
     axs[0].grid(True)
 
     plt.tight_layout()
-    # plt.show()
-    #save figure to a file
 
+    #save figure to a file
     plt.savefig(f"plots/{filter_type}_filter_{low_cutoff}-{high_cutoff}Hz_order{filter_order}.")
     plt.close()
     
@@ -412,3 +405,163 @@ def filter_data(data,b):
     filtered_data=filtfilt(b, a=1, x=data,axis=data.ndim-1)
     
     return filtered_data
+
+   
+def individual_press_epoch_eeg_data(eeg_data, Y_data, information_array, fs, epoch_start_time=-0.5, epoch_end_time=1):
+
+
+    channels_count = eeg_data.shape[0]
+    left_finger_correct = np.where(Y_data == 1)[0]
+    left_finger_LOC = np.where(Y_data == 3)[0]
+    right_finger_correct = np.where(Y_data == 2)[0]
+    right_finger_LOC = np.where(Y_data == 4)[0]
+
+    samples_per_epoch = int(fs * (epoch_end_time - epoch_start_time))
+
+    left_finger_correct_epoch = np.zeros((len(left_finger_correct), channels_count, samples_per_epoch))
+    left_finger_LOC_epoch = np.zeros((len(left_finger_LOC), channels_count, samples_per_epoch))
+    right_finger_correct_epoch = np.zeros((len(right_finger_correct), channels_count, samples_per_epoch))
+    right_finger_LOC_epoch = np.zeros((len(right_finger_LOC), channels_count, samples_per_epoch))
+
+    time_data = np.arange(epoch_start_time, epoch_end_time, 1 / fs)
+
+    
+    for sample_index, sample in enumerate(left_finger_correct):
+        epoch_start_index = sample + int(epoch_start_time * fs)
+        epoch_end_index = epoch_start_index + samples_per_epoch
+        left_finger_correct_epoch[sample_index, :, :] = eeg_data[:, epoch_start_index:epoch_end_index]
+
+    for sample_index, sample in enumerate(right_finger_correct):
+        epoch_start_index = sample + int(epoch_start_time * fs)
+        epoch_end_index = epoch_start_index + samples_per_epoch
+        right_finger_correct_epoch[sample_index, :, :] = eeg_data[:, epoch_start_index:epoch_end_index]
+
+    for sample_index, sample in enumerate(right_finger_LOC):
+        epoch_start_index = sample + int(epoch_start_time * fs)
+        epoch_end_index = epoch_start_index + samples_per_epoch
+        right_finger_LOC_epoch[sample_index, :, :] = eeg_data[:, epoch_start_index:epoch_end_index]
+
+    for sample_index, sample in enumerate(left_finger_LOC):
+        epoch_start_index = sample + int(epoch_start_time * fs)
+        epoch_end_index = epoch_start_index + samples_per_epoch
+        left_finger_LOC_epoch[sample_index, :, :] = eeg_data[:, epoch_start_index:epoch_end_index]
+
+    return time_data, left_finger_correct_epoch, left_finger_LOC_epoch, right_finger_correct_epoch, right_finger_LOC_epoch
+
+
+def plot_LOC(subject, time_data, left_finger_correct_epoch, left_finger_LOC_epoch, right_finger_correct_epoch, right_finger_LOC_epoch, channels, channels_to_plot):
+    channels_to_plot_count = len(channels_to_plot)
+    fig, axs = plt.subplots(2, channels_to_plot_count, figsize=(12, 6), sharex=True, sharey=True)
+
+    data_sets = [
+        (left_finger_correct_epoch, left_finger_LOC_epoch, "Left Finger Responses", "Left", 'blue', 'navy'),
+        (right_finger_correct_epoch, right_finger_LOC_epoch, "Right Finger Responses", "Right", 'red', 'maroon')
+    ]
+
+    for channel_index, channel_loc in enumerate(channels_to_plot):
+        for idx, (correct_epoch, LOC_epoch, title, side, correct_color, LOC_color) in enumerate(data_sets):
+            p_vals = calculate_bootstrap_pval(correct_epoch, LOC_epoch)
+
+            axs[idx,channel_index].grid(True)
+            correct_se = np.std(correct_epoch, axis=0) / np.sqrt(correct_epoch.shape[0])
+            LOC_se = np.std(LOC_epoch, axis=0) / np.sqrt(LOC_epoch.shape[0])
+
+            axs[idx,channel_index].plot(time_data, np.mean(correct_epoch[:,channel_loc,:], axis=0), color=correct_color, label=f"{side} Normal")
+            upper_bound = np.mean(correct_epoch[:,channel_loc,:], axis=0) + correct_se[channel_loc,:] * 2
+            lower_bound = np.mean(correct_epoch[:,channel_loc,:], axis=0) - correct_se[channel_loc,:] * 2
+            axs[idx,channel_index].fill_between(time_data, upper_bound, lower_bound, alpha=0.3, color=correct_color) 
+
+            axs[idx,channel_index].plot(time_data, np.mean(LOC_epoch[:,channel_loc,:], axis=0), color=LOC_color, label=f"{side} LOC")
+            upper_bound = np.mean(LOC_epoch[:,channel_loc,:], axis=0) + LOC_se[channel_loc,:] * 2
+            lower_bound = np.mean(LOC_epoch[:,channel_loc,:], axis=0) - LOC_se[channel_loc,:] * 2
+            axs[idx,channel_index].fill_between(time_data, upper_bound, lower_bound, alpha=0.3, color=LOC_color) 
+
+            axs[idx,channel_index].set_title(title + f' Channel {channels[channel_loc]}')
+            for p_val_index, p_val in enumerate(p_vals[channel_loc,:]):
+                if p_val < 0.05:
+                    axs[idx,channel_index].scatter(time_data[p_val_index], 0,  color="black")
+
+            axs[idx,channel_index].legend()
+            axs[idx,channel_index].axvline(x=0, linestyle='--', color='black', linewidth=1)
+            axs[1,channel_index].set_xlabel("Time (s)")
+    plt.suptitle("Comparison of Left and Right Presses Across Normal and LOC")
+    plt.tight_layout()
+    plt.savefig(f"plots/subject_{subject}_left_right_normal_LOC_comparison")
+    plt.close()
+
+
+def check_channel_significance(epoch_type1, epoch_type2):
+    p_vals = calculate_bootstrap_pval(epoch_type1, epoch_type2)
+    p_vals = fdr_correction(p_vals)[0]
+
+    counts = np.sum(p_vals < 0.05, axis=1)
+
+    # Find the index of the dimension with the highest count
+    highest_indices = np.argsort(counts)[-3:]
+    return highest_indices
+
+
+def resample_eeg(epoch_data, resample_count):
+
+    trial_index = np.random.randint(epoch_data.shape[0],size=resample_count)
+    epoch_resampled = epoch_data[trial_index,:,:]
+
+    return epoch_resampled
+
+
+def get_bootstrap_erp(epoch_type1, epoch_type2):
+
+    #merge target and nontarget distributions
+    all_data = np.concatenate((epoch_type1, epoch_type2), axis = 0)
+
+    type1_trial_count = epoch_type1.shape[0]
+    type2_trial_count = epoch_type2.shape[0]
+    
+    # resample from merged distrubution, keeping same trial and nontrial count as original
+    type1_sampled = resample_eeg(all_data, type1_trial_count)
+    type2_sampled = resample_eeg(all_data, type2_trial_count)
+    
+    # calculate resampled ERPs
+    type1_erp_samples = np.mean(type1_sampled, axis=0) 
+    type2_erp_samples = np.mean(type2_sampled, axis=0) 
+    
+    # calculate test statistic, the absolute difference between ERPs
+    bootstrap_difference = np.abs(type1_erp_samples - type2_erp_samples)
+
+    return bootstrap_difference
+
+
+def calculate_boostrap_stats(epoch_type1, epoch_type2, iteration_count=3000):
+    
+    # set up array for distribution of statistic values
+
+    sample_count = epoch_type1.shape[1]
+    channel_count = epoch_type1.shape[2]    
+
+    erp_diffs = np.full((iteration_count,sample_count,channel_count),np.nan)
+
+    for iteration_index in range(iteration_count):
+        # Calculat test statistic for resampled datasets
+        erp_diffs[iteration_index,:,:] = get_bootstrap_erp(epoch_type1, epoch_type2)
+
+    return erp_diffs
+
+
+def calculate_bootstrap_pval(epoch_type1, epoch_type2, iteration_count=100):
+
+    # calculate observed erp differences, in real data
+    erp_diffs_real = abs(np.mean(epoch_type1, axis=0) - np.mean(epoch_type2, axis=0))
+    # calculate bootstrap erp differences
+    erp_diffs_distribution = calculate_boostrap_stats(epoch_type1,epoch_type2,iteration_count)
+
+    is_greater_than_dist = np.greater(erp_diffs_real,erp_diffs_distribution) # compare the observed statistic to this distribution of statistic values
+    exceed_count = np.sum(is_greater_than_dist,axis=0) # count how many distribution values are exceeded by the observed value
+    p_values = 1-exceed_count/iteration_count # 1-(percentage of distribution values that are exceeded by the observed value) (p-value)
+    return p_values
+
+
+def correct_p_values(p_values):
+
+    _, p_values_corrected = fdr_correction(p_values)
+
+    return p_values_corrected
