@@ -65,7 +65,7 @@ def plot_topo(axes=None, channel_names=[], channel_data=[],title='',cbar_label='
     # Clear current axes
     #plt.cla()    # commented in Lab 5
     # Plot topomap on current axes    
-    im,_ = mne.viz.plot_topomap(fake_evoked.data[:, 0], fake_evoked.info,show=False, axes=axes)
+    im,_ = mne.viz.plot_topomap(fake_evoked.data[:, 0], fake_evoked.info,show=False, axes=axes,)
     # Annotate plot
 
     plt.title(title) # commented in Lab 5
@@ -77,10 +77,10 @@ def plot_topo(axes=None, channel_names=[], channel_data=[],title='',cbar_label='
         axes.set_title(title) # added in Lab 5
     ###########################
 
-    # cbar = plt.colorbar(im,label=cbar_label)
+    cbar = plt.colorbar(im,label=cbar_label)
     
     # return image and colorbar objects
-    return im
+    return im, cbar
 
 
 # Helper and QA functions
