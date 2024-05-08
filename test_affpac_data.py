@@ -20,6 +20,8 @@ plt.close('all')
 
 #Build data file string
 data_directory='./BNCI_data/'
+
+
 for subject in [0, 1, 2, 4, 6, 7, 9, 10, 11]:
 
     channels, information_array, eeg_data, Y_data = afp.load_affpac_data(subject,data_directory)
@@ -33,9 +35,10 @@ for subject in [0, 1, 2, 4, 6, 7, 9, 10, 11]:
     filter_coefficients_band_pass=afp.make_bandpass_filter(low_cutoff,high_cutoff,filter_type,filter_order,fs)
     eeg_data=afp.filter_data(eeg_data,filter_coefficients_band_pass)
     time_data, left_finger_correct_epoch, left_finger_LOC_epoch, right_finger_correct_epoch, right_finger_LOC_epoch = afp.individual_press_epoch_eeg_data(eeg_data, Y_data, information_array, fs)
-    left_normal_LOC_channels = afp.check_channel_significance(left_finger_correct_epoch, left_finger_LOC_epoch)
-    # right_normal_LOC_channels = afp.check_channel_significance(right_finger_correct_epoch, right_finger_LOC_epoch, channels)
-    # left_normal_right_normal_channels =afp.check_channel_significance(right_finger_correct_epoch, left_finger_correct_epoch, channels)
+    left_normal_LOC_channels = afp.check_channel_significance(right_finger_correct_epoch, right_finger_LOC_epoch)
+
+    right_normal_LOC_channels = afp.check_channel_significance(right_finger_correct_epoch, right_finger_LOC_epoch)
+    left_normal_right_normal_channels =afp.check_channel_significance(right_finger_correct_epoch, left_finger_correct_epoch)
 
 
     afp.plot_LOC(subject, time_data, left_finger_correct_epoch, left_finger_LOC_epoch, right_finger_correct_epoch, right_finger_LOC_epoch, channels, left_normal_LOC_channels)
@@ -58,6 +61,4 @@ for subject in [0, 1, 2, 4, 6, 7, 9, 10, 11]:
     eeg_epochs_fft_normal,fft_frequencies=afp.get_frequency_spectrum(eeg_epoch_normal,fs)
     eeg_epochs_fft_frustrated,fft_frequencies=afp.get_frequency_spectrum(eeg_epoch_frustrated,fs)
     
-    # spectrum_db_normal,spectrum_db_frustrated=afp.plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_frequencies,channels,left_normal_LOC_channels,subject)
-
     afp.plot_after_button_press(eeg_epoch_normal, eeg_epoch_frustrated, normal_epoch_masks, frustrated_epoch_masks, epoch_time_array, Y_data, channels, subject, channel_to_plot=["Fz"], start_stop_time=[-1, 2], presses="first", separate_by_side=False)

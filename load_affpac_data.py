@@ -220,6 +220,7 @@ def plot_epoch_data(eeg_epoch_normal, eeg_epoch_frustrated, epoch_time_array, ch
             plt.plot(epoch_time_array, eeg_epoch_frustrated[trial, channel_index, :], color='red', alpha=0.5)
 
     plt.legend()
+    channel_to_plot = ''.join(channel_to_plot)
     plt.title(f"Channel {channel_to_plot} Subject {subject}")
     plt.grid(True)
     plt.xlabel("Time (s)")
@@ -564,40 +565,40 @@ def plot_LOC(subject, time_data, left_finger_correct_epoch, left_finger_LOC_epoc
     ]
 
     for channel_index, channel_loc in enumerate(channels_to_plot):
-        for idx, (correct_epoch, LOC_epoch, title, side, correct_color, LOC_color) in enumerate(data_sets):
+        for plot_index, (correct_epoch, LOC_epoch, title, side, correct_color, LOC_color) in enumerate(data_sets):
             #get p values
             p_vals = calculate_bootstrap_pval(correct_epoch, LOC_epoch)
 
-            axs[idx,channel_index].grid(True)
+            axs[plot_index,channel_index].grid(True)
             correct_se = np.std(correct_epoch, axis=0) / np.sqrt(correct_epoch.shape[0])
             LOC_se = np.std(LOC_epoch, axis=0) / np.sqrt(LOC_epoch.shape[0])
 
-            axs[idx,channel_index].plot(time_data, np.mean(correct_epoch[:,channel_loc,:], axis=0), color=correct_color, label=f"{side} Normal")
+            axs[plot_index,channel_index].plot(time_data, np.mean(correct_epoch[:,channel_loc,:], axis=0), color=correct_color, label=f"{side} Normal")
             # plot CI normal
             upper_bound = np.mean(correct_epoch[:,channel_loc,:], axis=0) + correct_se[channel_loc,:] * 2
             lower_bound = np.mean(correct_epoch[:,channel_loc,:], axis=0) - correct_se[channel_loc,:] * 2
-            axs[idx,channel_index].fill_between(time_data, upper_bound, lower_bound, alpha=0.3, color=correct_color) 
+            axs[plot_index,channel_index].fill_between(time_data, upper_bound, lower_bound, alpha=0.3, color=correct_color) 
 
-            axs[idx,channel_index].plot(time_data, np.mean(LOC_epoch[:,channel_loc,:], axis=0), color=LOC_color, label=f"{side} LOC")
+            axs[plot_index,channel_index].plot(time_data, np.mean(LOC_epoch[:,channel_loc,:], axis=0), color=LOC_color, label=f"{side} LOC")
             # plot CI LOC
             upper_bound = np.mean(LOC_epoch[:,channel_loc,:], axis=0) + LOC_se[channel_loc,:] * 2
             lower_bound = np.mean(LOC_epoch[:,channel_loc,:], axis=0) - LOC_se[channel_loc,:] * 2
-            axs[idx,channel_index].fill_between(time_data, upper_bound, lower_bound, alpha=0.3, color=LOC_color) 
+            axs[plot_index,channel_index].fill_between(time_data, upper_bound, lower_bound, alpha=0.3, color=LOC_color) 
 
-            axs[idx,channel_index].set_title(title + f' Subject {subject} Channel {channels[channel_loc]}')
+            axs[plot_index,channel_index].set_title(title + f' Subject {subject} Channel {channels[channel_loc]}')
             plotted_first_p_val = False
             # mark locations where bootstrapping leads to a signif. p value 
             for p_val_index, p_val in enumerate(p_vals[channel_loc,:]):
                 if p_val < 0.05: 
                     if plotted_first_p_val ==False:
-                        axs[idx,channel_index].scatter(time_data[p_val_index], 0,  color="fuchsia", label = "p < 0.05")
+                        axs[plot_index,channel_index].scatter(time_data[p_val_index], 0,  color="fuchsia", label = "p < 0.05")
                         plotted_first_p_val = True
                     else:
-                        axs[idx,channel_index].scatter(time_data[p_val_index], 0,  color="fuchsia")
+                        axs[plot_index,channel_index].scatter(time_data[p_val_index], 0,  color="fuchsia")
 
-            axs[idx,channel_index].legend()
-            axs[idx,channel_index].axvline(x=0, linestyle='--', color='black', linewidth=1, label="Finger Press")
-            axs[idx,0].set_ylabel("Voltage (uV)")
+            axs[plot_index,channel_index].legend()
+            axs[plot_index,channel_index].axvline(x=0, linestyle='--', color='black', linewidth=1, label="Finger Press")
+            axs[plot_index,0].set_ylabel("Voltage (uV)")
 
             axs[1,channel_index].set_xlabel("Time (s)")
     # save plot 
