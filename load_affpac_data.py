@@ -16,6 +16,7 @@ from pylab import *
 from scipy.signal import firwin, filtfilt,freqz,hilbert
 from mne.stats import fdr_correction
 
+#set seed for boot strapping 
 np.random.seed(0)
 
 
@@ -355,7 +356,7 @@ def get_frequency_spectrum(eeg_epochs,fs):
     fft_frequencies=np.arange(0,fs/2,(fs/2)/eeg_epochs_fft_magnitude.shape[2])
     if n<len(fft_frequencies):
         fft_frequencies=fft_frequencies[0:-1]
-    #fft_frequencies=np.fft.rfftfreq(n,d=1/fs)
+
     return eeg_epochs_fft,fft_frequencies
 
 
@@ -392,7 +393,6 @@ def plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_freq
     for channel_index, channel_name in enumerate(channels_to_plot):
     
        is_channel_to_plot = channels==channel_name
-    #    print(fft_frequencies.shape, subject)
        axs[channel_index].plot(fft_frequencies,np.squeeze(eeg_epochs_fft_db_normal[is_channel_to_plot]),label='Normal Trials')
        axs[channel_index].axvline(x=12,linewidth=1, color='b')
        axs[channel_index].plot(fft_frequencies,np.squeeze(eeg_epochs_fft_db_frustrated[is_channel_to_plot]),label='Frustrated Trials')
