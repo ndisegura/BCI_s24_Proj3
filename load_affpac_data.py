@@ -232,6 +232,41 @@ def plot_epoch_data(eeg_epoch_normal, eeg_epoch_frustrated, epoch_time_array, ch
     
 
 def plot_after_button_press(eeg_epoch_normal, eeg_epoch_frustrated, normal_epoch_masks, frustrated_epoch_masks, epoch_time_array, Y_data, channels, subject, channel_to_plot, start_stop_time=[-1, 2], presses="first", separate_by_side=False):
+    """
+    Plot EEG data for a specific channel after button presses.
+
+    Parameters:
+    -----------
+    eeg_epoch_normal : numpy.ndarray
+        EEG data for normal trials, shape (num_trials, num_channels, num_samples).
+    eeg_epoch_frustrated : numpy.ndarray
+        EEG data for frustrated trials, shape (num_trials, num_channels, num_samples).
+    normal_epoch_masks : numpy.ndarray
+        Boolean masks for normal trials, shape (num_trials, num_samples).
+    frustrated_epoch_masks : numpy.ndarray
+        Boolean masks for frustrated trials, shape (num_trials, num_samples).
+    epoch_time_array : numpy.ndarray
+        Array containing time points for EEG epochs.
+    Y_data : numpy.ndarray
+        Array containing event labels for each time point.
+    channels : numpy.ndarray
+        Array containing channel names.
+    subject : str
+        Subject identifier.
+    channel_to_plot : str
+        Name of the channel to plot.
+    start_stop_time : list, optional
+        Time range relative to button press to plot EEG data, defaults to [-1, 2] seconds.
+    presses : str, optional
+        Indicates which button press to consider, defaults to "first".
+    separate_by_side : bool, optional
+        Whether to plot normal and frustrated trials separately, defaults to False.
+
+    Returns:
+    --------
+    None
+    """
+    
     plt.figure()
     
     sampling_period=epoch_time_array[1] - epoch_time_array[0]
@@ -362,7 +397,33 @@ def get_frequency_spectrum(eeg_epochs,fs):
 
 
 def plot_power_spectrum(eeg_epochs_fft_normal,eeg_epochs_fft_frustrated,fft_frequencies,channels,channels_to_plot,subject=1):
+    '''
+    plots the power spectrum  
+
+    Parameters
+    ----------
+    eeg_epochs_fft_normal : numpy array of floats of size T x C x S where T is the number 
+    of event TRIALS, C is the number of channels
+    and S is the number of EEG samples for the normal epochs 
+
+    eeg_epochs_fft_frustrated : numpy array of floats of size T x C x S where T is the number 
+    of event TRIALS, C is the number of channels
+    and S is the number of EEG samples for the frustrated epochs
+
+    fft_frequencies : fft frequencies 
+ 
+    channels : list of channels avaliable in the data 
+
+    channels_to_plot : channels to plot 
     
+    subject : subjects id int  
+    Returns
+
+    eeg_epochs_fft_db_normal: normal epoch data converted to db. same size as input 
+    
+    eeg_epochs_fft_db_frustrated: frustrated epoch data converted to db, same size as input 
+    -------
+    '''
     eeg_epochs_fft_magnitude_normal=np.absolute(eeg_epochs_fft_normal)
     eeg_epochs_fft_magnitude_frustrated=np.absolute(eeg_epochs_fft_frustrated)
     
